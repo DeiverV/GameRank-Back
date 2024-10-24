@@ -2,8 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
 import { v4 as uuidv4 } from 'uuid';
 
-import { DetailsUser, User } from './entities';
+import { DetailsUser, User, UserSummary } from './entities';
 import { CreateUserDto, UpdateUserDto } from './dto';
+import { FilterGameUserDto } from './dto/filter-game-user.dto';
+import {
+  PaginationReceivedDto,
+  PaginatorDto,
+} from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -29,9 +34,13 @@ export class UsersService {
     }
   }
 
-  getAllUsers() {
+  getAllUsers({
+    limit,
+    page,
+  }: PaginationReceivedDto): PaginatorDto<DetailsUser> {
     const allUsers: DetailsUser[] = this.users
       .filter((user) => user.role === 'PLAYER')
+      .slice(page * limit - limit, page * limit)
       .map((user) => ({
         email: user.email,
         highestScore: Math.random(),
@@ -44,10 +53,16 @@ export class UsersService {
         username: user.username,
       }));
 
-    return allUsers;
+    return {
+      data: allUsers,
+      limit,
+      page,
+      totalCount: this.users.length,
+      totalPages: Math.ceil(this.users.length / limit),
+    };
   }
 
-  getUserById(id: string): DetailsUser {
+  getUserByUsername(id: string): DetailsUser {
     const user = this.users.find((user) => user.id === id);
     const detailsUser = {
       email: user.email,
@@ -91,7 +106,55 @@ export class UsersService {
     return this.users[userIndex];
   }
 
+  getUsersByGameAndRank({
+    game,
+    limit,
+    page,
+  }: FilterGameUserDto): PaginatorDto<UserSummary> {
+    const allUsers: UserSummary[] = this.users
+      .filter((user) => user.role === 'PLAYER')
+      .slice(page * limit - limit, page * limit)
+      .map((user) => ({
+        name: user.name,
+        username: user.username,
+        image: user.image,
+        email: user.email,
+        highestScore: Math.random(),
+        game,
+      }));
+
+    return {
+      data: allUsers,
+      limit,
+      page,
+      totalCount: this.users.length,
+      totalPages: Math.ceil(this.users.length / limit),
+    };
+  }
+
+  blockOrUnblockUser(id: string): User {
+    const userIndex = this.users.findIndex((user) => user.id === id);
+    if (userIndex === -1) {
+      return null;
+    }
+
+    this.users[userIndex] = {
+      ...this.users[userIndex],
+      isBlocked: !this.users[userIndex].isBlocked,
+    };
+
+    return this.users[userIndex];
+  }
+
   deleteUser(id: string): void {
-    this.users = this.users.filter((user) => user.id !== id);
+    const userIndex = this.users.findIndex((user) => user.id === id);
+    if (userIndex === -1) {
+      return null;
+    }
+
+    this.users[userIndex] = {
+      ...this.users[userIndex],
+      isActive: false,
+    };
   }
 }
