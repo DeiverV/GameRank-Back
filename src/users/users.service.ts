@@ -115,29 +115,37 @@ export class UsersService {
     return this.users[userIndex];
   }
 
-  getUsersByGameAndRank({
-    game,
-    limit,
-    page,
-  }: FilterGameUserDto): PaginatorDto<UserSummary> {
-    const allUsers: UserSummary[] = this.users
-      .filter((user) => user.role === 'PLAYER')
-      .slice(page * limit - limit, page * limit)
-      .map((user) => ({
+  getUsersByGameAndRank(
+    filterDto: FilterGameUserDto,
+  ): PaginatorDto<UserSummary> {
+    // const scoresRanking = call Ms of Scores(filterDto)
+
+    const { data, limit, page, totalCount, totalPages } = {
+      data: [{ score: 100, userId: uuidv4() }],
+      limit: 5,
+      page: 1,
+      totalCount: 1,
+      totalPages: 1,
+    };
+
+    const leaderboard: UserSummary[] = data.map((score) => {
+      const user = this.users.find((user) => user.id === score.userId);
+      return {
         name: user.name,
         username: user.username,
         image: user.image,
         email: user.email,
-        highestScore: Math.random(),
-        game,
-      }));
+        highestScore: score.score,
+        game: filterDto.game,
+      };
+    });
 
     return {
-      data: allUsers,
+      data: leaderboard,
       limit,
       page,
-      totalCount: this.users.length,
-      totalPages: Math.ceil(this.users.length / limit),
+      totalCount,
+      totalPages,
     };
   }
 

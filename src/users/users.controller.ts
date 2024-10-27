@@ -23,13 +23,13 @@ export class UsersController {
   //--------Grpc Communication
 
   @GrpcMethod('UsersService', 'CreateUser')
-  createUser(@Body() createUserDto: CreateUserDto) {
-    this.usersService.createUser(createUserDto);
+  createUser(data: CreateUserDto) {
+    this.usersService.createUser(data);
   }
 
   @GrpcMethod('UsersService', 'ValidateUser')
-  validateUser(@Body() validateUser: ValidateUserDto) {
-    return this.usersService.validateUser(validateUser);
+  validateUser(data: ValidateUserDto) {
+    return this.usersService.validateUser(data);
   }
 
   //---------REST Communication
