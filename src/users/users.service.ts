@@ -9,6 +9,7 @@ import {
   PaginationReceivedDto,
   PaginatorDto,
 } from 'src/common/dto/pagination.dto';
+import { ValidateUserDto } from './dto/validate-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -60,6 +61,14 @@ export class UsersService {
       totalCount: this.users.length,
       totalPages: Math.ceil(this.users.length / limit),
     };
+  }
+
+  validateUser({ password, email }: ValidateUserDto) {
+    const user = this.users.find(
+      (user) => user.email === email && user.password === password,
+    );
+
+    return user;
   }
 
   getUserByUsername(id: string): DetailsUser {
