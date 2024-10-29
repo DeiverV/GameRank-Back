@@ -1,0 +1,15 @@
+services:
+  postgresql:
+    image: postgres:latest
+    container_name: usersdb
+    environment:
+      POSTGRES_USER: deiberv
+      POSTGRES_PASSWORD: deibervpass
+      POSTGRES_DB: bootcamp
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -10,12 +10,13 @@ import {
   PaginatorDto,
 } from 'src/common/dto/pagination.dto';
 import { ValidateUserDto } from './dto/validate-user.dto';
+import { PrismaService } from 'prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
   private users: User[] = [];
 
-  constructor() {
+  constructor(private readonly prismaService: PrismaService) {
     this.generateMockData();
   }
 
