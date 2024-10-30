@@ -101,8 +101,10 @@ export class UsersService {
     this.users.push(newUser);
   }
 
-  updateUser(id: string, updateUserDto: UpdateUserDto): User {
-    const userIndex = this.users.findIndex((user) => user.id === id);
+  updateUser(updateUserDto: UpdateUserDto): User {
+    const userIndex = this.users.findIndex(
+      (user) => user.id === updateUserDto.userId,
+    );
     if (userIndex === -1) {
       return null;
     }
