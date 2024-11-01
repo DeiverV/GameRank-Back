@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Query } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto, FilterGameUserDto, UpdateUserDto } from './dto';
 import { PaginationReceivedDto } from 'src/common/dto/pagination.dto';

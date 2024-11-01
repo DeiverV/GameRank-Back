@@ -10,13 +10,14 @@ import {
   PaginatorDto,
 } from 'src/common/dto/pagination.dto';
 import { ValidateUserDto } from './dto/validate-user.dto';
-import { PrismaService } from 'prisma/prisma.service';
+import { RpcException } from '@nestjs/microservices';
+// import { PrismaService } from 'prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
   private users: User[] = [];
-
-  constructor(private readonly prismaService: PrismaService) {
+  // private readonly prismaService: PrismaService
+  constructor() {
     this.generateMockData();
   }
 
@@ -41,7 +42,7 @@ export class UsersService {
     page,
   }: PaginationReceivedDto): PaginatorDto<DetailsUser> {
     const allUsers: DetailsUser[] = this.users
-      .filter((user) => user.role === 'PLAYER')
+      .filter((user) => user.role === 'PLAYER' && user.isActive)
       .slice(page * limit - limit, page * limit)
       .map((user) => ({
         email: user.email,
@@ -72,8 +73,11 @@ export class UsersService {
     return user;
   }
 
-  getUserByUsername(id: string): DetailsUser {
-    const user = this.users.find((user) => user.id === id);
+  getUserByUsername(username: string) {
+    const user = this.users.find((user) => user.username === username);
+
+    if (!user) throw new RpcException('User was not found!');
+
     const detailsUser = {
       email: user.email,
       highestScore: Math.random(),
@@ -102,17 +106,17 @@ export class UsersService {
   }
 
   updateUser(updateUserDto: UpdateUserDto): User {
-    const userIndex = this.users.findIndex(
-      (user) => user.id === updateUserDto.userId,
+    const userIndex = this.users.findIndex((user) =>
+      user?.id ? user?.id === updateUserDto.userId : false,
     );
-    if (userIndex === -1) {
-      return null;
-    }
 
+    if (userIndex === -1) throw new RpcException('User was not found!');
+
+    // const buffer = Buffer.from(updateUserDto.image, 'base64');
     this.users[userIndex] = {
       ...this.users[userIndex],
       username: updateUserDto.username,
-      image: updateUserDto.image.name,
+      image: `${updateUserDto.username}-profilePic`,
     };
 
     return this.users[userIndex];
@@ -152,29 +156,23 @@ export class UsersService {
     };
   }
 
-  blockOrUnblockUser(id: string): User {
+  blockOrUnblockUser(id: string) {
     const userIndex = this.users.findIndex((user) => user.id === id);
-    if (userIndex === -1) {
-      return null;
+    if (userIndex !== -1) {
+      this.users[userIndex] = {
+        ...this.users[userIndex],
+        isBlocked: !this.users[userIndex].isBlocked,
+      };
     }
-
-    this.users[userIndex] = {
-      ...this.users[userIndex],
-      isBlocked: !this.users[userIndex].isBlocked,
-    };
-
-    return this.users[userIndex];
   }
 
   deleteUser(id: string): void {
     const userIndex = this.users.findIndex((user) => user.id === id);
-    if (userIndex === -1) {
-      return null;
+    if (userIndex !== -1) {
+      this.users[userIndex] = {
+        ...this.users[userIndex],
+        isActive: false,
+      };
     }
-
-    this.users[userIndex] = {
-      ...this.users[userIndex],
-      isActive: false,
-    };
   }
 }

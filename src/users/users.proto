@@ -6,7 +6,7 @@ service UsersService {
     rpc CreateUser(CreateUserDto) returns (Empty);
     rpc ValidateUser(ValidateUserDto) returns (User);
     rpc GetUserDetails(GetUserDetailsDto) returns (UserDetails);
-    rpc GetAllPlayers(PaginationDto) returns (User);
+    rpc GetAllPlayers(PaginationDto) returns (AllPlayerResponse);
     rpc GetUsersByGame(GetUserByGameDto) returns (GetUserByGameResponse);
     rpc UpdateUser(UpdateUserDto) returns (UserDetails);
     rpc DeleteUser(UserId) returns (Empty);
@@ -20,34 +20,34 @@ message UserId {
 message UpdateUserDto {
     string userId = 1;
     string username = 2; 
-    File image = 3; 
+    bytes image = 3; 
 }
 
 message GetUserByGameResponse {
-    number page = 1;
-    number limit = 2;
-    number totalCount = 3;
-    number totalPages = 4;
+    int32 page = 1;
+    int32 limit = 2;
+    int32 totalCount = 3;
+    int32 totalPages = 4;
     repeated UserSummary data = 5;
 }
 
 message GetUserByGameDto {
-    number page = 1;
-    number limit = 2;
+    int32 page = 1;
+    int32 limit = 2;
     string game = 3;
 }
 
 message AllPlayerResponse {
-    number page = 1;
-    number limit = 2;
-    number totalCount = 3;
-    number totalPages = 4;
+    int32 page = 1;
+    int32 limit = 2;
+    int32 totalCount = 3;
+    int32 totalPages = 4;
     repeated UserDetails data = 5;
 }
 
 message PaginationDto {
-    number page = 1;
-    number limit = 2;
+    int32 page = 1;
+    int32 limit = 2;
 }
 
 message GetUserDetailsDto {
@@ -60,7 +60,7 @@ message UserSummary {
     string image = 3;
     string email = 4;
     string game = 5;
-    number highestScore = 6;
+    int32 highestScore = 6;
 }
 
 message UserDetails {
@@ -70,9 +70,9 @@ message UserDetails {
     string email = 5;
     string image = 6;
     string role = 7;
-    boolean isBlocked = 8;
-    boolean rank = 9;
-    boolean highestScore = 10;
+    bool isBlocked = 8;
+    int32 rank = 9;
+    int32 highestScore = 10;
 }
 
 message CreateUserDto {
@@ -95,8 +95,8 @@ message User {
     string email = 5;
     string image = 6;
     string role = 7;
-    boolean isBlocked = 8;
-    boolean isActive = 9;
+    bool isBlocked = 8;
+    bool isActive = 9;
 }
 
 message Empty {}
