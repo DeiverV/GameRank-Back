@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: deiberv
       POSTGRES_PASSWORD: deibervpass
-      POSTGRES_DB: bootcamp
+      POSTGRES_DB: game_score_users
     ports:
       - '5432:5432'
     volumes:

@@ -12,42 +12,42 @@ export class UsersController {
   //--------Grpc Communication
 
   @GrpcMethod('UsersService', 'CreateUser')
-  createUser(data: CreateUserDto) {
-    this.usersService.createUser(data);
+  async createUser(data: CreateUserDto) {
+    await this.usersService.createUser(data);
   }
 
   @GrpcMethod('UsersService', 'ValidateUser')
-  validateUser(data: ValidateUserDto) {
-    return this.usersService.validateUser(data);
+  async validateUser(data: ValidateUserDto) {
+    return await this.usersService.validateUser(data);
   }
 
   @GrpcMethod('UsersService', 'GetUserDetails')
-  getUserDetails({ username }: { username: string }) {
-    return this.usersService.getUserByUsername(username);
+  async getUserDetails({ username }: { username: string }) {
+    return await this.usersService.getUserByUsername(username);
   }
 
   @GrpcMethod('UsersService', 'GetAllPlayers')
-  getAllPlayers(query: PaginationReceivedDto) {
-    return this.usersService.getAllUsers(query);
+  async getAllPlayers(query: PaginationReceivedDto) {
+    return await this.usersService.getAllUsers(query);
   }
 
   @GrpcMethod('UsersService', 'GetUsersByGame')
-  getUsersByGame(query: FilterGameUserDto) {
-    return this.usersService.getUsersByGameAndRank(query);
+  async getUsersByGame(query: FilterGameUserDto) {
+    return await this.usersService.getUsersByGameAndRank(query);
   }
 
   @GrpcMethod('UsersService', 'UpdateUser')
-  updateUser(data: UpdateUserDto) {
-    return this.usersService.updateUser(data);
+  async updateUser(data: UpdateUserDto) {
+    return await this.usersService.updateUser(data);
   }
 
   @GrpcMethod('UsersService', 'DeleteUser')
-  deleteUser({ userId }: { userId: string }) {
-    this.usersService.deleteUser(userId);
+  async deleteUser({ userId }: { userId: string }) {
+    await this.usersService.deleteUser(userId);
   }
 
   @GrpcMethod('UsersService', 'BlockOrUnblockUser')
-  blockOrUnblockUser({ userId }: { userId: string }) {
-    this.usersService.blockOrUnblockUser(userId);
+  async blockOrUnblockUser({ userId }: { userId: string }) {
+    await this.usersService.blockOrUnblockUser(userId);
   }
 }

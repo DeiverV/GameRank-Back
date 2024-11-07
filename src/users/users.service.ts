@@ -177,13 +177,13 @@ export class UsersService {
   }
 
   async blockOrUnblockUser(id: string) {
-    await this.prismaService.user.update({
+    return await this.prismaService.user.update({
       where: { id },
       data: { isBlocked: true },
     });
   }
 
   async deleteUser(id: string) {
-    await this.prismaService.user.delete({ where: { id } });
+    return await this.prismaService.user.delete({ where: { id } });
   }
 }
