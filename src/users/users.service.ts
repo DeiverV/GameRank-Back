@@ -1,8 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { faker } from '@faker-js/faker';
-import { v4 as uuidv4 } from 'uuid';
+import { Inject, Injectable } from '@nestjs/common';
 
-import { DetailsUser, User, UserSummary } from './entities';
+import { DetailsUser, UserSummary } from './entities';
 import { CreateUserDto, UpdateUserDto } from './dto';
 import { FilterGameUserDto } from './dto/filter-game-user.dto';
 import {
@@ -10,82 +8,92 @@ import {
   PaginatorDto,
 } from 'src/common/dto/pagination.dto';
 import { ValidateUserDto } from './dto/validate-user.dto';
-import { RpcException } from '@nestjs/microservices';
-// import { PrismaService } from 'prisma/prisma.service';
+import { ClientGrpc, RpcException } from '@nestjs/microservices';
+import { PrismaService } from '../prisma/prisma.service';
+import { ScoresService } from './interfaces/scores.service';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from 'src/supabase';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
-  // private readonly prismaService: PrismaService
-  constructor() {
-    this.generateMockData();
+  private scoresService: ScoresService;
+  private readonly supabase: SupabaseClient;
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Inject('SCORES_PACKAGE') private readonly grpcClient: ClientGrpc,
+  ) {
+    this.supabase = supabase;
   }
 
-  private generateMockData(): void {
-    for (let i = 0; i < 1000; i++) {
-      this.users.push({
-        id: uuidv4(),
-        email: faker.internet.email(),
-        image: faker.internet.url(),
-        isActive: true,
-        isBlocked: false,
-        name: faker.internet.userName(),
-        password: faker.internet.password(),
-        role: 'PLAYER',
-        username: faker.internet.userName(),
-      });
-    }
+  onModuleInit() {
+    this.scoresService =
+      this.grpcClient.getService<ScoresService>('ScoresService');
   }
 
-  getAllUsers({
+  async getAllUsers({
     limit,
     page,
-  }: PaginationReceivedDto): PaginatorDto<DetailsUser> {
-    const allUsers: DetailsUser[] = this.users
-      .filter((user) => user.role === 'PLAYER' && user.isActive)
-      .slice(page * limit - limit, page * limit)
-      .map((user) => ({
-        email: user.email,
-        highestScore: Math.random(),
-        id: user.id,
-        image: user.image,
-        isBlocked: user.isBlocked,
-        name: user.name,
-        rank: Math.random(),
-        role: user.role,
-        username: user.username,
-      }));
+  }: PaginationReceivedDto): Promise<PaginatorDto<DetailsUser>> {
+    const filters = {
+      isActive: true,
+      role: 'PLAYER',
+    };
+
+    const fullCount = await this.prismaService.user.count({
+      where: filters,
+    });
+
+    const allUsers = await this.prismaService.user.findMany({
+      skip: page * limit - limit,
+      take: limit,
+      where: filters,
+      select: {
+        email: true,
+        id: true,
+        image: true,
+        isBlocked: true,
+        name: true,
+        role: true,
+        username: true,
+      },
+    });
 
     return {
       data: allUsers,
       limit,
       page,
-      totalCount: this.users.length,
-      totalPages: Math.ceil(this.users.length / limit),
+      totalCount: fullCount,
+      totalPages: Math.ceil(fullCount / limit),
     };
   }
 
-  validateUser({ password, email }: ValidateUserDto) {
-    const user = this.users.find(
-      (user) => user.email === email && user.password === password,
-    );
+  async validateUser({ password, email }: ValidateUserDto) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        password,
+        email,
+      },
+    });
 
     return user;
   }
 
-  getUserByUsername(username: string) {
-    const user = this.users.find((user) => user.username === username);
+  async getUserByUsername(username: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        username,
+      },
+    });
 
     if (!user) throw new RpcException('User was not found!');
 
     const detailsUser = {
       email: user.email,
-      highestScore: Math.random(),
       id: user.id,
       image: user.image,
       isBlocked: user.isBlocked,
       name: user.name,
-      rank: Math.random(),
       role: user.role,
       username: user.username,
     };
@@ -93,62 +101,74 @@ export class UsersService {
     return detailsUser;
   }
 
-  createUser(createUserDto: CreateUserDto) {
-    const newUser: User = {
-      id: uuidv4(),
-      isActive: true,
-      isBlocked: true,
-      role: 'PLAYER',
-      ...createUserDto,
-    };
-
-    this.users.push(newUser);
+  async createUser(createUserDto: CreateUserDto) {
+    await this.prismaService.user.create({
+      data: {
+        email: createUserDto.email,
+        name: createUserDto.name,
+        username: createUserDto.username,
+        password: createUserDto.password,
+        image: null,
+        role: 'PLAYER',
+      },
+    });
   }
 
-  updateUser(updateUserDto: UpdateUserDto): User {
-    const userIndex = this.users.findIndex((user) =>
-      user?.id ? user?.id === updateUserDto.userId : false,
-    );
+  async updateUser(updateUserDto: UpdateUserDto) {
+    const { data: uploadingData } = await supabase.storage
+      .from('bootcamp')
+      .upload(
+        `public/${updateUserDto.username}-profilePic`,
+        updateUserDto.image,
+        {
+          cacheControl: '3000',
+          upsert: false,
+        },
+      );
 
-    if (userIndex === -1) throw new RpcException('User was not found!');
+    const { data } = supabase.storage
+      .from('bootcamp')
+      .getPublicUrl(uploadingData.path);
 
-    // const buffer = Buffer.from(updateUserDto.image, 'base64');
-    this.users[userIndex] = {
-      ...this.users[userIndex],
-      username: updateUserDto.username,
-      image: `${updateUserDto.username}-profilePic`,
-    };
-
-    return this.users[userIndex];
-  }
-
-  getUsersByGameAndRank(
-    filterDto: FilterGameUserDto,
-  ): PaginatorDto<UserSummary> {
-    // const scoresRanking = call Ms of Scores(filterDto)
-
-    const { data, limit, page, totalCount, totalPages } = {
-      data: [{ score: 100, userId: uuidv4() }],
-      limit: 5,
-      page: 1,
-      totalCount: 1,
-      totalPages: 1,
-    };
-
-    const leaderboard: UserSummary[] = data.map((score) => {
-      const user = this.users.find((user) => user.id === score.userId);
-      return {
-        name: user.name,
-        username: user.username,
-        image: user.image,
-        email: user.email,
-        highestScore: score.score,
-        game: filterDto.game,
-      };
+    await this.prismaService.user.update({
+      where: { id: updateUserDto.userId },
+      data: {
+        image: data.publicUrl,
+        username: updateUserDto.username,
+      },
     });
 
+    const user = this.prismaService.user.findUnique({
+      where: { id: updateUserDto.userId },
+    });
+
+    return user;
+  }
+
+  async getUsersByGameAndRank(
+    filterDto: FilterGameUserDto,
+  ): Promise<PaginatorDto<UserSummary>> {
+    const scores = await this.scoresService.getUsersRankingByGame(filterDto);
+    const { data, limit, page, totalCount, totalPages } = scores;
+
+    const leaderBoard = await Promise.all(
+      data.map(async (score) => {
+        const user = await this.prismaService.user.findUnique({
+          where: { id: score.userId },
+        });
+        return {
+          name: user.name,
+          username: user.username,
+          image: user.image,
+          email: user.email,
+          highestScore: score.score,
+          game: filterDto.game,
+        };
+      }),
+    );
+
     return {
-      data: leaderboard,
+      data: leaderBoard,
       limit,
       page,
       totalCount,
@@ -156,23 +176,14 @@ export class UsersService {
     };
   }
 
-  blockOrUnblockUser(id: string) {
-    const userIndex = this.users.findIndex((user) => user.id === id);
-    if (userIndex !== -1) {
-      this.users[userIndex] = {
-        ...this.users[userIndex],
-        isBlocked: !this.users[userIndex].isBlocked,
-      };
-    }
+  async blockOrUnblockUser(id: string) {
+    await this.prismaService.user.update({
+      where: { id },
+      data: { isBlocked: true },
+    });
   }
 
-  deleteUser(id: string): void {
-    const userIndex = this.users.findIndex((user) => user.id === id);
-    if (userIndex !== -1) {
-      this.users[userIndex] = {
-        ...this.users[userIndex],
-        isActive: false,
-      };
-    }
+  async deleteUser(id: string) {
+    await this.prismaService.user.delete({ where: { id } });
   }
 }

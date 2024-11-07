@@ -20,8 +20,6 @@ export class DetailsUser {
   image: string;
   role: string;
   isBlocked: boolean;
-  rank: number;
-  highestScore: number;
 }
 
 export class UserSummary {
